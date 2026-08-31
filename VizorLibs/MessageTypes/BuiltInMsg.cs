@@ -5,6 +5,18 @@ namespace VizorLibs.MessageTypes
     {
         new public BuiltInMsg.String msg { get; set; }
     }
+    public class ROSMessageBool : ROSMessage
+    {
+        new public BuiltInMsg.Bool msg { get; set; }
+    }
+    public class ROSMessageInt32 : ROSMessage
+    {
+        new public BuiltInMsg.Int32 msg { get; set; }
+    }
+    public class ROSMessageFloat64 : ROSMessage
+    {
+        new public BuiltInMsg.Float64 msg { get; set; }
+    }
     public class ROSMessagePose : ROSMessage // deprecated
     {
         new public BuiltInMsg.Pose msg { get; set; }
@@ -57,6 +69,45 @@ namespace VizorLibs.MessageTypes
             public string data;
 
             public String (string data)
+            {
+                this.data = data;
+            }
+        }
+
+        /// <summary>
+        /// std_msgs/Bool.msg
+        /// </summary>
+        public class Bool
+        {
+            public bool data;
+
+            public Bool(bool data)
+            {
+                this.data = data;
+            }
+        }
+
+        /// <summary>
+        /// std_msgs/Int32.msg
+        /// </summary>
+        public class Int32
+        {
+            public int data;
+
+            public Int32(int data)
+            {
+                this.data = data;
+            }
+        }
+
+        /// <summary>
+        /// std_msgs/Float64.msg
+        /// </summary>
+        public class Float64
+        {
+            public double data;
+
+            public Float64(double data)
             {
                 this.data = data;
             }

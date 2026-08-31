@@ -121,7 +121,7 @@ namespace Vizor._2_Content
 
                 geoms.Add(new SceneGeometryObject
                 {
-                    gMesh = (rule == "flange") ? meshes[i] : VizorUtilities.TransformVisualisation(meshes[i], anchorDevice),
+                    gMesh = VizorUtilities.IsLinkAttachedRule(rule) ? meshes[i] : VizorUtilities.TransformVisualisation(meshes[i], anchorDevice),
                     //gMesh = meshes[i],
                     name = name,
                     layer = VizorUtilities.GetLayerFromRule(rule, anchorDevice), //layers.Count == 1 ? layers[0] : layers[i],

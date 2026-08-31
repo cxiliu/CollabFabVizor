@@ -15,6 +15,10 @@ namespace VizorLibs.MessageTypes
     {
         new public SceneTextMsg msg { get; set; }
     }
+    public class ROSMessageInteractable : ROSMessage
+    {
+        new public InteractableMsg msg { get; set; }
+    }
 
     public class SceneContentMsg
     {
@@ -115,6 +119,41 @@ namespace VizorLibs.MessageTypes
             this.transform = transform;
         }
 
+    }
+
+
+    public class InteractableMsg
+    {
+        public const string k_RosMessageName = "vizor_package/Interactable";
+        public string type { get; set; }
+        public string topic { get; set; }
+        public string message { get; set; }
+        public string layer { get; set; }
+        public string name { get; set; }
+        public string material { get; set; }
+        public BuiltInMsg.MeshMsg mesh { get; set; }
+
+        public InteractableMsg()
+        {
+            this.type = "";
+            this.topic = "";
+            this.message = "";
+            this.layer = "";
+            this.name = "";
+            this.material = "";
+            this.mesh = new BuiltInMsg.MeshMsg();
+        }
+
+        public InteractableMsg(string type, string topic, string message, string layer, string name, string material, BuiltInMsg.MeshMsg mesh)
+        {
+            this.type = type;
+            this.topic = topic;
+            this.message = message;
+            this.layer = layer;
+            this.name = name;
+            this.material = material;
+            this.mesh = mesh;
+        }
     }
 
     //TODO: Add image / video message

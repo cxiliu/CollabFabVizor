@@ -27,8 +27,18 @@ namespace VizorLibs.MessageTypes
             return multiplier;
         }
 
+        /// <summary>
+        /// Inverse of RhinoToROSMultiplier — scales incoming ROS-unit (meters) values
+        /// up to the active Rhino document's units.
+        /// </summary>
+        public static float ROSToRhinoMultiplier()
+        {
+            return 1f / RhinoToROSMultiplier();
+        }
+
         public static BuiltInMsg.MeshMsg ghMeshToMsg(Mesh mesh)
         {
+            if (mesh == null) return new BuiltInMsg.MeshMsg();
             float multiplier = RhinoToROSMultiplier();
             mesh.Faces.ConvertQuadsToTriangles();
             return new BuiltInMsg.MeshMsg

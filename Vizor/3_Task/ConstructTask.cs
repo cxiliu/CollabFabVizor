@@ -67,7 +67,9 @@ namespace Vizor._4_Task
             pManager.AddTextParameter("Instruction Texts", "Instruction", 
                 "optional text to guide the task" + input_instruction, GH_ParamAccess.list);
             pManager.AddGenericParameter("Robot Trajectory", "Trajectory",
-                "optional trajectory object for robotic tasks (a single input will be applied to all robotic tasks)", GH_ParamAccess.list);
+                "optional trajectory object for robotic tasks (a single input will be applied to all robotic tasks)" +
+                "\nLeave unconnected for non-motion robotic tasks (e.g. gripper or tool change), which are driven by the task name. " +
+                "\nIn a mixed series, supply one item per task and leave a null gap for each non-motion task. ", GH_ParamAccess.list);
             pManager.AddGenericParameter("Safety Zone", "Zone",
                 "optional safety zone objects for robotic tasks (a single input will be applied to all tasks)"+ 
                 "\nThe system sends an alert when monitored worker positions fall in range of the specified boundaries. "+
@@ -97,9 +99,11 @@ namespace Vizor._4_Task
             {
                 Params.Input[4].Name = "Robot Trajectory";
                 Params.Input[4].NickName = "Trajectory";
-                Params.Input[4].Description = "trajectory object for robotic tasks (a single input will be applied to all robotic tasks)";
+                Params.Input[4].Description = "optional trajectory object for robotic tasks (a single input will be applied to all robotic tasks)" +
+                    "\nLeave unconnected for non-motion robotic tasks (e.g. gripper or tool change), which are driven by the task name. " +
+                    "\nIn a mixed series, supply one item per task and leave a null gap for each non-motion task. ";
                 Params.Input[5].Name = "Safety Zone";
-                Params.Input[5].NickName = "Z";
+                Params.Input[5].NickName = "Zone";
                 Params.Input[5].Description = "safety zone objects for robotic tasks (a single input will be applied to all robotic tasks)" +
                     "\nThe system sends an alert when monitored worker positions fall in defined range of the specified boundaries. " +
                     "\nZones specified for manual tasks will be ignored. ";
@@ -212,40 +216,44 @@ namespace Vizor._4_Task
 
 
             // robot trajectory objects
+            // a robotic task without motion data is valid: the backend dispatches non-motion skills
+            // (gripper, tool change, dwell) on the task name, and motion may also be planned robot-side
             trajectories = new List<RobotTrajectoryObject>();
-            if (!DA.GetDataList(4, trajectories)){
+            if (!DA.GetDataList(4, trajectories) || (trajectories.Count == 0)){
+                tasks.ForEach(x => x.gTrajectoryObject = null);
                 if (VizorUtilities.GetTargetType(targets) != TargetType.CompleteManual)
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "You added a robot client, but did not provide any trajectory input. ");
-                        DA.SetDataList(1, null);
-                        return;
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark,
+                        "Robotic task(s) created without motion data. They will be dispatched as non-motion tasks, "+
+                        "driven by the task name. \nConnect a trajectory object if the robot should move. ");
                 }
-                tasks.ForEach(x => x.gTrajectoryObject = null);
             }
             else
             {
                 if (VizorUtilities.GetTargetType(targets) != TargetType.CompleteManual)
                 {
-                    if (trajectories.Count == 0)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "You added a robot client, but did not provide any trajectory input. ");
-                        DA.SetDataList(1, null);
-                        return;
-                    }
                     if ((trajectories.Count != 1) && (!AssertInput("Trajectories", trajectories.Count, tasks.Count)))
                     {
                         DA.SetDataList(1, null);
                         return;
                     }
+
+                    // gaps in the list are intentional: they mark individual non-motion tasks within a
+                    // mixed series (e.g. move -> close gripper -> move -> open gripper)
+                    List<int> tasksWithoutMotion = new List<int>();
                     for (int i = 0; i < tasks.Count; i++)
                     {
                         tasks[i].gTrajectoryObject = trajectories.Count == 1 ? trajectories[0] : trajectories[i];
                         if (tasks[i].gTrajectoryObject == null)
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid trajectory input. ");
-                            DA.SetDataList(1, null);
-                            return;
+                            tasksWithoutMotion.Add(i + 1);
                         }
+                    }
+                    if (tasksWithoutMotion.Count > 0)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Remark,
+                            String.Format("Task(s) {0} have no motion data and will be dispatched as non-motion tasks. ",
+                                String.Join(", ", tasksWithoutMotion)));
                     }
                 }
             }
@@ -256,7 +264,7 @@ namespace Vizor._4_Task
                 tasks.ForEach(x => x.gSafetyZoneObject = null);
                 if (VizorUtilities.GetTargetType(targets) != TargetType.CompleteManual)
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "You added a robot client, but did not provide any safety information. \nWe recommend adding a safety zone. ");
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "You added a robot client, but did not provide any safety information. \nConsider adding a safety zone. ");
                 }
             }
             else
@@ -265,7 +273,7 @@ namespace Vizor._4_Task
                 {
                     if (zones.Count == 0)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "You added a robot client, but did not provide any safety zone input. ");
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "You added a robot client, but did not provide any safety zone input. ");
                     }
                     else if ((zones.Count != 1) && (!AssertInput("Safety Zones", zones.Count, tasks.Count)))
                     {

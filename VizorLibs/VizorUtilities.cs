@@ -116,14 +116,11 @@ namespace VizorLibs
                     else
                         return "persistent-local";
                 default:
+                    if (displayRule.StartsWith("link:"))
+                        return isRobot ? "step-local" : "step";
                     if (displayRule.StartsWith("add-"))
-                    {
                         return displayRule;
-                    }
-                    else
-                    {
-                        return "session";
-                    }
+                    return "session";
             }
         }
 
@@ -179,9 +176,22 @@ namespace VizorLibs
                 case "flange":
                     return flange;
                 default:
+                    if (displayRule.StartsWith("link:") && device is RobotObject)
+                    {
+                        RobotObject rob = (RobotObject)device;
+                        string targetLink = displayRule.Substring(5);
+                        int linkIndex = Array.IndexOf(rob.joint_names, targetLink);
+                        if (linkIndex >= 0)
+                            return "Machines/" + device.name + "/platform_transform/" +
+                                   String.Join("/", rob.joint_names.Take(linkIndex + 1).ToArray());
+                        return flange;
+                    }
                     return session;
             }
         }
+
+        public static bool IsLinkAttachedRule(string rule) =>
+            rule == "flange" || rule.StartsWith("link:");
 
         // todo (extension): create a function for rule-based appearances
         // define a display rule and generate colors / abstract v.s. solid appearances programmatically
@@ -238,67 +248,71 @@ namespace VizorLibs
         //}
 
         /// <summary>
-        /// Unity uses a different coordinate system 
+        /// Expresses geometry in the frame its AR content is published in. Robot-anchored content is
+        /// parented to platform_transform on the headset, which applies the robot's own base transform,
+        /// so it has to be published base-local. Everything else is published in world coordinates.
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        public static Mesh TransformVisualisation(Mesh input, Device device)
+        /// <param name="input">geometry in Rhino world coordinates</param>
+        /// <param name="device">the device the geometry is anchored to</param>
+        /// <returns>a copy of the input expressed in that device's content frame</returns>
+        /// <summary>
+        /// The transform that takes Rhino world coordinates into the content frame of a device.
+        /// Identity for everything except robots, whose content is published base-local.
+        /// </summary>
+        /// <param name="device">the device the geometry is anchored to</param>
+        /// <returns>the transform to apply, or identity if the device needs no rebasing</returns>
+        private static Transform GetVisualisationTransform(Device device)
         {
-            Mesh copy = input.DuplicateMesh();
             if (device is RobotObject)
             {
-                RobotObject robot = (RobotObject) device;
-
+                RobotObject robot = (RobotObject)device;
                 if (robot.virtualRobotObjectS is SphericalWrist6AxisRobot spherical)
                 {
-                    copy.Translate(new Vector3d(new Point3d() - spherical.RobRootFrame.Origin));
+                    return Transform.PlaneToPlane(spherical.RobRootFrame, Plane.WorldXY);
                 }
                 else if (robot.virtualRobotObjectNS is NonSphericalWrist6AxisRobot nonspherical)
                 {
-                    copy.Translate(new Vector3d(new Point3d() - nonspherical.BaseFrame.Origin));
+                    return Transform.PlaneToPlane(nonspherical.BaseFrame, Plane.WorldXY);
                 }
                 //copy.Translate(new Vector3d(new Point3d() - robot.virtualRobotObject.RobRootFrame.Origin));
             }
             //copy.Rotate(-Math.PI * 0.5, Vector3d.ZAxis, new Point3d());
+            return Transform.Identity;
+        }
+
+        public static Mesh TransformVisualisation(Mesh input, Device device)
+        {
+            Mesh copy = input.DuplicateMesh();
+            copy.Transform(GetVisualisationTransform(device));
             return copy;
         }
 
         public static Plane TransformVisualisation(Plane input, Device device)
         {
             Plane copy = input.Clone();
-            if (device is RobotObject)
-            {
-                RobotObject robot = (RobotObject)device;
-                if (robot.virtualRobotObjectS is SphericalWrist6AxisRobot spherical)
-                {
-                    copy.Translate(new Vector3d(new Point3d() - spherical.RobRootFrame.Origin));
-                }
-                else if (robot.virtualRobotObjectNS is NonSphericalWrist6AxisRobot nonspherical)
-                {
-                    copy.Translate(new Vector3d(new Point3d() - nonspherical.BaseFrame.Origin));
-                }
-                //copy.Translate(new Vector3d(new Point3d() - robot.virtualRobotObject.RobRootFrame.Origin));
-            }
-            //copy.Rotate(-Math.PI * 0.5, Vector3d.ZAxis, new Point3d());
+            copy.Transform(GetVisualisationTransform(device));
             return copy;
         }
+
         public static Brep TransformVisualisation(Brep input, Device device)
         {
             Brep copy = input.DuplicateBrep();
-            if (device is RobotObject)
+            copy.Transform(GetVisualisationTransform(device));
+            return copy;
+        }
+
+        public static Point3d[] TransformVisualisation(Point3d[] input, Device device)
+        {
+            if (input == null)
+                return new Point3d[0];
+
+            Transform xform = GetVisualisationTransform(device);
+            Point3d[] copy = new Point3d[input.Length];
+            for (int i = 0; i < input.Length; i++)
             {
-                RobotObject robot = (RobotObject)device;
-                if (robot.virtualRobotObjectS is SphericalWrist6AxisRobot spherical)
-                {
-                    copy.Translate(new Vector3d(new Point3d() - spherical.RobRootFrame.Origin));
-                }
-                else if (robot.virtualRobotObjectNS is NonSphericalWrist6AxisRobot nonspherical)
-                {
-                    copy.Translate(new Vector3d(new Point3d() - nonspherical.BaseFrame.Origin));
-                }
-                //copy.Translate(new Vector3d(new Point3d() - robot.virtualRobotObject.RobRootFrame.Origin));
+                copy[i] = new Point3d(input[i]);
+                copy[i].Transform(xform);
             }
-            //copy.Rotate(-Math.PI * 0.5, Vector3d.ZAxis, new Point3d());
             return copy;
         }
     }

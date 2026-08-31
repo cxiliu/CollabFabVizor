@@ -154,6 +154,7 @@ namespace Vizor._3_Robot
                 if (name == "UR10")
                 {
                     angles = values.Select(v => v).ToList();
+                    //angles[0] = angles[0] - 180;
                 }
                 else
                 {
@@ -260,12 +261,16 @@ namespace Vizor._3_Robot
                 List<Double> angles = null;
                 if (robot.virtualRobotObjectS is SphericalWrist6AxisRobot spherical)
                 {
-                    tcp.Transform(Transform.Scale(spherical.RobRootFrame, multiplier, multiplier, multiplier));
+                    tcp.Transform(Transform.Scale(spherical.RobRootFrame, multiplier, multiplier, multiplier)); // this ignores rotations, ik itself already considers base frame
+                    //tcp.Transform(Transform.Scale(Plane.WorldXY, multiplier, multiplier, multiplier));
+                    //tcp.Transform(Transform.PlaneToPlane(Plane.WorldXY, spherical.RobRootFrame));
                     angles = spherical.ComputeAxisValuesFromTargetTcpFrame(tcp, robot.axisToggles);
                 }
                 else if (robot.virtualRobotObjectNS is NonSphericalWrist6AxisRobot nonSpherical)
                 {
-                    tcp.Transform(Transform.Scale(nonSpherical.BaseFrame, multiplier, multiplier, multiplier));
+                    tcp.Transform(Transform.Scale(nonSpherical.BaseFrame, multiplier, multiplier, multiplier)); // this ignores rotations, ik itself already considers base frame
+                    //tcp.Transform(Transform.Scale(Plane.WorldXY, multiplier, multiplier, multiplier));
+                    //tcp.Transform(Transform.PlaneToPlane(Plane.WorldXY, nonSpherical.BaseFrame));
                     angles = nonSpherical.ComputeAxisValuesFromTargetTcpFrame(tcp, robot.axisToggles);
                 }
 
@@ -292,6 +297,10 @@ namespace Vizor._3_Robot
         {
             List<Plane> tcpFrames = new List<Plane>();
             List<float[]> angularTrajectoryPoints = new List<float[]>();
+
+            // nothing to convert: callers treat an empty frame list as "no path"
+            if ((trajectoryPoints == null) || (trajectoryPoints.Count == 0)) return tcpFrames;
+
             int num_of_axis = trajectoryPoints[0].Length;
 
             for (int i = 0; i < trajectoryPoints.Count; i++)

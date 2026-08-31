@@ -125,15 +125,19 @@ namespace Vizor._2_Content
                 {
                     name = "Txt_" + names[i];
                 }
+                string rule = rules.Count == 1 ? rules[0] : rules[i];
+                Plane textPlane = planes.Count == 1 ? planes[0] : planes[i];
                 textObjects.Add(new SceneTextObject
                 {
                     text = texts[i],
-                    plane = planes.Count == 1 ? planes[0] : planes[i],
+                    // link-attached text is parented to a moving joint, so it is published as authored.
+                    // everything else is rebased into the anchor's content frame, same as MakeMesh
+                    plane = VizorUtilities.IsLinkAttachedRule(rule) ? textPlane : VizorUtilities.TransformVisualisation(textPlane, anchorDevice),
                     name = name,
-                    layer = VizorUtilities.GetLayerFromRule(rules.Count == 1 ? rules[0] : rules[i], anchorDevice), //layers.Count == 1 ? layers[0] : layers[i],
+                    layer = VizorUtilities.GetLayerFromRule(rule, anchorDevice), //layers.Count == 1 ? layers[0] : layers[i],
                     material = materials.Count == 1 ? materials[0] : materials[i],
                     solid = false, //solidFlag.Count == 1 ? solidFlag[0] : solidFlag[i],
-                    operation = rules.Count == 1 ? VizorUtilities.GetOperationFromRule(rules[0], anchorDevice) : VizorUtilities.GetOperationFromRule(rules[i], anchorDevice)
+                    operation = VizorUtilities.GetOperationFromRule(rule, anchorDevice)
                 });
                 output += String.Format("{0} texts\n", textObjects[i].name);
             }

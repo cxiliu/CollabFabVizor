@@ -9,31 +9,31 @@ using VizorLibs.MessageTypes;
 
 namespace Vizor._3_Machine
 {
-    ///<summary>  
-    /// The RobotExecution component is responsible for receiving and executing robot tasks.  
-    /// It supports both physical execution and simulation modes.  
-    ///  
-    /// Inputs: 
-    /// - Robot (R): A registered RobotObject instance representing the robot to execute tasks.  
-    /// - Robot Task (T): A GeneralTaskObject containing the task details to be executed.  
-    /// - Start (S): A boolean to enable or disable the component. Set to true to start execution.  
-    /// - Physical (P): A boolean to determine the execution mode. True for physical execution, false for simulation.  
-    ///  
-    /// Outputs: 
-    /// - Output (Out): A string providing the status of the execution, such as connection updates or errors.  
-    ///  
-    /// Usage: 
-    /// This component validates the provided task and robot, updates the robot device if necessary,  
-    /// and executes the task either physically or in simulation mode. It ensures safety by requiring pre-checked motions.  
+    ///<summary>
+    /// The RobotExecution component is responsible for receiving and executing robot tasks.
+    /// It always commands the robot to execute; use MotionSimulation for previewing tasks
+    /// without moving the robot, and the ROS-side `physical` launch argument to choose
+    /// whether the execution pipeline targets real or simulated hardware.
+    ///
+    /// Inputs:
+    /// - Robot (R): A registered RobotObject instance representing the robot to execute tasks.
+    /// - Robot Task (T): A GeneralTaskObject containing the task details to be executed.
+    /// - Start (S): A boolean to enable or disable the component. Set to true to start execution.
+    ///
+    /// Outputs:
+    /// - Output (Out): A string providing the status of the execution, such as connection updates or errors.
+    ///
+    /// Usage:
+    /// This component validates the provided task and robot, updates the robot device if necessary,
+    /// and executes the task. It ensures safety by requiring pre-checked motions.
     /// </summary>
-    
+
     public class RobotExecution : VizorBaseComponent
     {
         private RobotObject robot;
         private GeneralTaskObject currentTask;
         private int cachedId;
         private bool execute;
-        private bool physical;
         /// <summary>
         /// Initializes a new instance of the RobotExecution class.
         /// </summary>
@@ -52,9 +52,7 @@ namespace Vizor._3_Machine
         {
             pManager.AddGenericParameter("Robot", "R", "registed robot object", GH_ParamAccess.item);
             pManager.AddGenericParameter("Robot Task", "T", "task to execute", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("Start", "S", "disable the component by setting it to false", 
-                GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Physical", "P", "true for execution (robot state will be changed), false for simulation",
+            pManager.AddBooleanParameter("Start", "S", "disable the component by setting it to false",
                 GH_ParamAccess.item, false);
         }
 
@@ -75,7 +73,6 @@ namespace Vizor._3_Machine
             if (!IsDocumentActive()) return;
             DA.GetData("Robot Task", ref currentTask);
             DA.GetData(2, ref execute);
-            DA.GetData(3, ref physical);
 
             // validity checks
             if (!execute)
@@ -114,7 +111,9 @@ namespace Vizor._3_Machine
             // receive static frames and a boolean to switch the simulation on and off
             // if current task changed, execute it (through a loop), once finished, deactivate
             // in iHRC implmenetation, the task should be sent to the Robot object in python
-            if ((currentTask.gTrajectoryObject != null) && (currentTask.gTrajectoryObject.joint_trajectory.Count == 0))
+            // a null trajectory is valid (non-motion task, e.g. "Gripper Open"); a trajectory object
+            // that carries no points is not, since motion was intended but could not be resolved
+            if ((currentTask.gTrajectoryObject != null) && ((currentTask.gTrajectoryObject.joint_trajectory?.Count ?? 0) == 0))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "no frame in this robot task");
                 return;
@@ -133,15 +132,13 @@ namespace Vizor._3_Machine
         {
             GeneralTaskMsg taskMsg = new GeneralTaskMsg(currentTask);
 
-            if (physical)
+            ROSMessageHandler.PublishTaskToRobot(this.wscObj, robot.name, taskMsg);
+
+            // the task message already embeds the trajectory. only mirror it onto the dedicated
+            // trajectory topic when there is real motion, so a non-motion task does not push an
+            // empty path that the receiver could read as "clear the current trajectory"
+            if (currentTask.gTrajectoryObject != null)
             {
-                ROSMessageHandler.PublishTaskToRobot(this.wscObj, robot.name, taskMsg);
-                //// This line below is added for the DF workshop implementation
-                ROSMessageHandler.PublishTrajectory(this.wscObj, robot.name, currentTask.GetTrajectoryMessages());
-            }
-            else
-            {
-                //ROSMessageHandler.PublishSimTaskToRobot(this.wscObj, robot.name, taskMsg);
                 ROSMessageHandler.PublishTrajectory(this.wscObj, robot.name, currentTask.GetTrajectoryMessages());
             }
         }

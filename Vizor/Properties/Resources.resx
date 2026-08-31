@@ -160,9 +160,6 @@
   <data name="Simulate Device" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>../Resources/MockupDevice.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Task Control" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>../Resources/HRC.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="Task Object" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>../Resources/ActionObject.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -214,7 +211,25 @@
   <data name="PublishMsg" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>../Resources/PublishMsg.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="ListenTopic" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>../Resources/ListenTopic.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="SafetyZone" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>../Resources/SafetyZone.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ConstructContent" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ConstructContent.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="DisplayRule" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DisplayRule.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Dyn_Control" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Dyn Control.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SceneInteractable" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Scene Interactable.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Task_Control" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Task Control.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

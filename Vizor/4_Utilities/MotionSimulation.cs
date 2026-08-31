@@ -34,6 +34,7 @@ namespace Vizor._3_Robot
         private RobotObject robot;
         private GeneralTaskObject currentTask;
         private int cachedId;
+        private int cachedSignature;
         private int interval;
         private volatile bool startSim;
         private Mesh targetMesh;
@@ -86,6 +87,7 @@ namespace Vizor._3_Robot
             if (! IsDocumentActive()) return;
             DA.GetData("Robot Task", ref currentTask);
             DA.GetData(3, ref startSim);
+            DA.GetData("Step Interval", ref interval);
 
             // when toggle is false, reset cached ID
             if (!startSim)
@@ -126,17 +128,20 @@ namespace Vizor._3_Robot
                 return;
             }
 
-            // if a new task is provided, restart the timer
-            if (currentTask.id != cachedId)
+            // if a new task is provided, or anything within the task changed (trajectory, content, etc.), restart the timer
+            int taskSignature = ComputeTaskSignature(currentTask);
+            if (currentTask.id != cachedId || taskSignature != cachedSignature)
             {
                 cachedId = currentTask.id;
+                cachedSignature = taskSignature;
                 CancelTimer();
-                StartSimulation();
-                this.Message = "Started";
+                if (StartSimulation())
+                {
+                    this.Message = "Started";
+                }
             }
 
             // Set output target TCP for visualisation in Grasshopper
-            DA.GetData("Step Interval", ref interval);
             if (this.timerActive && startSim)
             {
                 DA.SetData(0, "sending frames" + "\nlast updated on " + DateTime.Now.ToString());
@@ -166,13 +171,92 @@ namespace Vizor._3_Robot
             timer.Stop();
         }
 
-        private void StartSimulation()
+        /// <summary>
+        /// Builds a lightweight fingerprint of the parts of the task relevant to the simulation
+        /// (trajectory, attached geometry, target, instruction), so a restart can be triggered
+        /// even when the task's id is unchanged but its content was edited upstream.
+        /// </summary>
+        private int ComputeTaskSignature(GeneralTaskObject task)
         {
-            ROSMessageHandler.PublishTrajectory(wscObj, robot.name, currentTask.GetTrajectoryMessages());
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + (task.gTarget?.name?.GetHashCode() ?? 0);
+                hash = hash * 31 + (task.instruction?.GetHashCode() ?? 0);
+                hash = hash * 31 + task.deadline;
+
+                RobotTrajectoryObject traj = task.gTrajectoryObject;
+                if (traj != null)
+                {
+                    hash = hash * 31 + (traj.gTrajectoryFrames?.Count ?? 0);
+                    if (traj.gTrajectoryFrames != null)
+                    {
+                        foreach (Plane p in traj.gTrajectoryFrames)
+{
+    hash = hash * 31 + p.Origin.X.GetHashCode();
+    hash = hash * 31 + p.Origin.Y.GetHashCode();
+    hash = hash * 31 + p.Origin.Z.GetHashCode();
+
+    // Include orientation as well as position
+    hash = hash * 31 + p.XAxis.X.GetHashCode();
+    hash = hash * 31 + p.XAxis.Y.GetHashCode();
+    hash = hash * 31 + p.XAxis.Z.GetHashCode();
+    hash = hash * 31 + p.YAxis.X.GetHashCode();
+    hash = hash * 31 + p.YAxis.Y.GetHashCode();
+    hash = hash * 31 + p.YAxis.Z.GetHashCode();
+}
+                    }
+                    hash = hash * 31 + (traj.joint_trajectory?.Count ?? 0);
+                    hash = hash * 31 + (traj.gMesh?.Vertices.Count ?? 0);
+                }
+
+                SceneContentObject content = task.gContentObject;
+                if (content?.geomObjects != null)
+                {
+                    hash = hash * 31 + content.geomObjects.Length;
+                    foreach (SceneGeometryObject go in content.geomObjects)
+                    {
+hash = hash * 31 + (go?.gMesh?.Vertices.Count ?? 0);
+                    }
+                }
+
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// Publishes the task's trajectory and starts the playback timer.
+        /// Returns false when the task carries no motion, in which case nothing is started.
+        /// </summary>
+        private bool StartSimulation()
+        {
+            // a robotic task may legitimately carry no motion at all (e.g. "Gripper Open", dispatched
+            // by name on the backend). there is nothing to publish or step through, so report it
+            // quietly rather than erroring and spinning the timer
+            if (currentTask.gTrajectoryObject == null)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "this task carries no motion to simulate");
+                this.Message = "No Motion";
+                return false;
+            }
+
+            VizorLibs.MessageTypes.RobotTrajectoryMsg trajectoryMsg = currentTask.GetTrajectoryMessages();
+            bool hasJointData = trajectoryMsg.joint_trajectory?.points != null && trajectoryMsg.joint_trajectory.points.Length > 0;
+
+            if (string.IsNullOrEmpty(trajectoryMsg.platform_name) || !hasJointData)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "no valid trajectory data to publish for this robot task");
+            }
+            else if (!ROSMessageHandler.PublishTrajectory(wscObj, robot.name, trajectoryMsg))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "trajectory could not be published (connection not open)");
+            }
+
             timerActive = true;
             executionCounter = 0;
             timer.Interval = interval >= 20 ? interval : 20;
             timer.Start();
+            return true;
         }
 
         private void RunSimulation(object source, ElapsedEventArgs e)

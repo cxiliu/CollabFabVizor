@@ -1,6 +1,7 @@
 ﻿// This file contains methods for handling ROS messages, including subscribing, unsubscribing, and publishing messages.
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using VizorLibs;
 using VizorLibs.MessageTypes;
@@ -56,6 +57,53 @@ namespace Vizor._1_System
         }
 
         /// <summary>
+        /// Subscribes to a topic under a caller-supplied rosbridge id.
+        /// The id-less overload above shares one subscription per topic across the whole
+        /// connection, so an unsubscribe from any component silently cuts off every other
+        /// component listening to the same topic. Passing an id scopes both halves to the caller.
+        /// </summary>
+        /// <param name="wsc">The websocket object.</param>
+        /// <param name="topic">The topic to subscribe to.</param>
+        /// <param name="type">The message type, or null to let rosbridge resolve it.</param>
+        /// <param name="id">Identifier echoed back on any status frame about this subscription.</param>
+        public static void Subscribe(WsObject wsc, string topic, string type, string id)
+        {
+            SendSubscription(wsc, "subscribe", topic, type, id);
+        }
+
+        /// <summary>
+        /// Unsubscribes a subscription previously made under the same rosbridge id.
+        /// </summary>
+        /// <param name="wsc">The websocket object.</param>
+        /// <param name="topic">The topic to unsubscribe from.</param>
+        /// <param name="type">The message type, or null if none was declared.</param>
+        /// <param name="id">The id used when subscribing.</param>
+        public static void Unsubscribe(WsObject wsc, string topic, string type, string id)
+        {
+            SendSubscription(wsc, "unsubscribe", topic, type, id);
+        }
+
+        /// <summary>
+        /// Builds a subscribe/unsubscribe frame by hand rather than through <see cref="ROSMessage"/>,
+        /// which always emits a "type" field: ROSMessage.type has no null handling, so an unset
+        /// type would serialize as "type": null and rosbridge rejects a subscribe whose declared
+        /// type conflicts with the topic's real type.
+        /// </summary>
+        private static void SendSubscription(WsObject wsc, string op, string topic, string type, string id)
+        {
+            JObject frame = new JObject();
+            frame["op"] = op;
+            frame["topic"] = topic;
+            if (!string.IsNullOrEmpty(id)) frame["id"] = id;
+            if (!string.IsNullOrEmpty(type)) frame["type"] = type;
+
+            // JsonConvert.SerializeObject rather than JToken.ToString(Formatting): Rhino 8 ships
+            // Newtonsoft.Json 13.0.3 and wins the assembly binding over the 13.0.4 this builds
+            // against, so any 13.0.4-only overload throws MissingMethodException at runtime.
+            wsc.send(JsonConvert.SerializeObject(frame));
+        }
+
+        /// <summary>
         /// Advertises a topic with a given message type.
         /// </summary>
         /// <param name="wsc">The websocket object.</param>
@@ -70,6 +118,18 @@ namespace Vizor._1_System
                 type = type
             };
             wsc.send(JsonConvert.SerializeObject(msg));
+        }
+
+        /// <summary>
+        /// Compares topics ignoring a leading slash, which ROS treats as the same topic but
+        /// which publishers in this system are inconsistent about — ARWorker subscribes to
+        /// "/{name}_GazePoint" while TrackedObject subscribes to "{name}/data", and
+        /// ParseGazePointMessage already accepts either spelling.
+        /// </summary>
+        public static bool SameTopic(string a, string b)
+        {
+            if (a == null || b == null) return false;
+            return a.TrimStart('/') == b.TrimStart('/');
         }
 
         #endregion
@@ -288,6 +348,39 @@ namespace Vizor._1_System
             wsc.send(JsonConvert.SerializeObject(msg));
         }
 
+        public static void PublishBoolMessage(WsObject wsc, string topic, bool value)
+        {
+            ROSMessage msg = new ROSMessageBool
+            {
+                op = "publish",
+                topic = topic,
+                msg = new BuiltInMsg.Bool(value)
+            };
+            wsc.send(JsonConvert.SerializeObject(msg));
+        }
+
+        public static void PublishInt32Message(WsObject wsc, string topic, int value)
+        {
+            ROSMessage msg = new ROSMessageInt32
+            {
+                op = "publish",
+                topic = topic,
+                msg = new BuiltInMsg.Int32(value)
+            };
+            wsc.send(JsonConvert.SerializeObject(msg));
+        }
+
+        public static void PublishFloat64Message(WsObject wsc, string topic, double value)
+        {
+            ROSMessage msg = new ROSMessageFloat64
+            {
+                op = "publish",
+                topic = topic,
+                msg = new BuiltInMsg.Float64(value)
+            };
+            wsc.send(JsonConvert.SerializeObject(msg));
+        }
+
         #endregion
 
         #region OUTGOING MESSAGES (custom objects)
@@ -346,6 +439,25 @@ namespace Vizor._1_System
         }
 
         /// <summary>
+        /// Publishes an interactable message.
+        /// </summary>
+        /// <param name="wsc">The websocket object.</param>
+        /// <param name="deviceName">The target device name.</param>
+        /// <param name="interactableMsg">The interactable message to publish.</param>
+        public static void PublishInteractable(WsObject wsc, string deviceName, InteractableMsg interactableMsg)
+        {
+            ROSMessage msg = new ROSMessageInteractable
+            {
+                op = "publish",
+                topic = deviceName + "_Interactable",
+                type = "vizor_package/Interactable",
+                msg = interactableMsg
+            };
+            string _msg = JsonConvert.SerializeObject(msg);
+            wsc.send(_msg);
+        }
+
+        /// <summary>
         /// Publishes a content message to the data store.
         /// </summary>
         /// <param name="wsc">The websocket object.</param>
@@ -369,7 +481,8 @@ namespace Vizor._1_System
         /// <param name="wsc">The websocket object.</param>
         /// <param name="target">The target robot.</param>
         /// <param name="robotTrajectoryMsg">The robot trajectory message to publish.</param>
-        public static void PublishTrajectory(WsObject wsc, string target, RobotTrajectoryMsg robotTrajectoryMsg)
+        /// <returns>True if the message was sent (the websocket was open), false otherwise.</returns>
+        public static bool PublishTrajectory(WsObject wsc, string target, RobotTrajectoryMsg robotTrajectoryMsg)
         {
             ROSMessage msg = new ROSMessageTrajectory
             {
@@ -379,7 +492,7 @@ namespace Vizor._1_System
                 msg = robotTrajectoryMsg
             };
             string _msg = JsonConvert.SerializeObject(msg);
-            wsc.send(_msg);
+            return wsc.send(_msg);
         }
 
         /// <summary>

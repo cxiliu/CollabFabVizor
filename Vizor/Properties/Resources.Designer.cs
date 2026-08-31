@@ -113,6 +113,16 @@ namespace Vizor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap ListenTopic {
+            get {
+                object obj = ResourceManager.GetObject("ListenTopic", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap Mesh {
             get {
                 object obj = ResourceManager.GetObject("Mesh", resourceCulture);
@@ -285,11 +295,23 @@ namespace Vizor.Properties {
         /// </summary>
         public static System.Drawing.Bitmap Task_Control {
             get {
-                object obj = ResourceManager.GetObject("Task Control", resourceCulture);
+                object obj = ResourceManager.GetObject("Task_Control", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap SceneInteractable
+        {
+            get
+            {
+                object obj = ResourceManager.GetObject("SceneInteractable", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
@@ -386,6 +408,38 @@ namespace Vizor.Properties {
         public static System.Drawing.Bitmap WsConnection {
             get {
                 object obj = ResourceManager.GetObject("WsConnection", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap ConstructContent {
+            get {
+                object obj = ResourceManager.GetObject("ConstructContent", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap DisplayRule {
+            get {
+                object obj = ResourceManager.GetObject("DisplayRule", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap Dyn_Control
+        {
+            get
+            {
+                object obj = ResourceManager.GetObject("Dyn_Control", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

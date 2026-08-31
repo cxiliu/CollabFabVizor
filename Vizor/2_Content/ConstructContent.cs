@@ -194,7 +194,7 @@ namespace Vizor._2_Content
             get
             {
                 //You can add image files to your project resources and access them like this:
-                return Vizor.Properties.Resources.Content;
+                return Vizor.Properties.Resources.ConstructContent;
             }
         }
 

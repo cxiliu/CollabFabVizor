@@ -10,9 +10,15 @@ VizorLibs/obj
 .vscode/
 CLAUDE.md
 .claude/
-.github/
+# Keep .github private EXCEPT the release workflows, which must be committed
+# for GitHub Actions to see them.
+.github/*
+!.github/workflows/
 Settings.settings
 Settings.Designer.cs
+.nuget/nuget.exe
+*-plan.md
+.yak/
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,windows,linux,visualstudiocode,csharp

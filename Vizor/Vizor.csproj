@@ -12,8 +12,6 @@
     <TargetExt>.gha</TargetExt>
     <NoWarn>NU1701;NETSDK1086</NoWarn>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
 
   <!-- Fix for .NET Framework 4.8 resource generation (non-string resources) -->
@@ -82,15 +80,19 @@ AssemblyVersionAttribute -->
     <Compile Include="2_Content/MakeWorkArea.cs" />
     <Compile Include="2_Content/SceneModel.cs" />
     <Compile Include="2_Content/MakeText.cs" />
+    <Compile Include="2_Content/MakeDisplayRule.cs" />
     <Compile Include="2_Content/MakeMesh.cs" />
     <Compile Include="2_Content/MakeTrajectory.cs" />
+    <Compile Include="2_Content/MakeInteractable.cs" />
     <Compile Include="3_Task/MakeTaskSeries.cs" />
     <Compile Include="3_Task/TaskController.cs" />
     <Compile Include="3_Task/DeconstructTask.cs" />
     <Compile Include="3_Task/SafetyZoneConfig.cs" />
     <Compile Include="3_Task/ConstructTask.cs" />
+    <Compile Include="3_Task/TaskTrigger.cs" />
     <Compile Include="4_Utilities/GazeTracker.cs" />
     <Compile Include="4_Utilities/PublishTopic.cs" />
+    <Compile Include="4_Utilities/ListenTopic.cs" />
     <Compile Include="4_Utilities/SensorTracker.cs" />
     <Compile Include="4_Utilities/PlanningSceneModel.cs" />
     <Compile Include="4_Utilities/MonitorWorkArea.cs" />
@@ -115,6 +117,9 @@ AssemblyVersionAttribute -->
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Dyn Control.png" />
+    <None Include="Resources\Scene Interactable.png" />
+    <None Include="Resources\Task Control.png" />
     <Content Include="VirtualRobot.Core.dll" />
     <None Include="app.config" />
     <None Include="packages.config" />
@@ -153,6 +158,8 @@ AssemblyVersionAttribute -->
     <Content Include="Resources/TaskSeries.png" />
     <None Include="Resources/vizor-logo-24.png" />
     <EmbeddedResource Include="Resources/WsConnection.png" />
+    <None Include="Resources/ConstructContent.png" />
+    <None Include="Resources/DisplayRule.png" />
   </ItemGroup>
 
   <!-- For Windows only builds -->

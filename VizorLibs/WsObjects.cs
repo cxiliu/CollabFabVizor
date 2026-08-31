@@ -53,9 +53,8 @@ namespace VizorLibs
 			this.webSocket.ReconnectTimeout = TimeSpan.FromSeconds(300);
 			this.webSocket.ReconnectionHappened.Subscribe(info =>
 			{
-				// Log.Information($"Reconnection happened, type: {info.Type}, url: {this.webSocket.Url}");
-				// info.Type == Initial for the first connection
-				// return true;
+				if (info.Type != ReconnectionType.Initial)
+					this.onOpen();
 			});
 			this.webSocket.DisconnectionHappened.Subscribe(info =>
 			{
@@ -131,7 +130,6 @@ namespace VizorLibs
 		private void onError()
 		{
 			status = ConnectionStatus.CLOSE;
-			webSocket = null;
 			onChanged();
 			onStatusChanged();
 		}
@@ -148,7 +146,6 @@ namespace VizorLibs
 		private void onClose()
 		{
 			status = ConnectionStatus.CLOSE;
-			webSocket = null;
 			onChanged();
 			onStatusChanged();
 		}

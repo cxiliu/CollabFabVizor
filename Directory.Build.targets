@@ -3,19 +3,17 @@
   Post-build deployment target — imported automatically by MSBuild after SDK targets.
 
   Copies Vizor.gha, VizorLibs.dll, VirtualRobot.Core.dll, and .pdb files to the
-  Grasshopper Libraries folder after a successful Debug build.
+  Grasshopper Libraries folder after a successful build (Debug or Release).
 
   Conditions (all must be true):
-    - Configuration == Debug    (never auto-deploy Release builds)
-    - TargetFramework matches ActiveDebugFramework  (prevents running 3× in multi-TFM builds)
+    - TargetFramework matches ActiveDebugTfm  (prevents running 3× in multi-TFM builds)
     - TargetExt == .gha         (only runs for the Vizor project, not VizorLibs)
 -->
 <Project>
 
   <Target Name="DeployToGrasshopper"
           AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Debug'
-                     and '$(TargetFramework)' == '$(ActiveDebugFramework)'
+          Condition="'$(TargetFramework)' == '$(ActiveDebugTfm)'
                      and '$(TargetExt)' == '.gha'">
 
     <MakeDir Directories="$(GHLibrariesPath)" />
@@ -29,7 +27,8 @@
           DestinationFolder="$(GHLibrariesPath)"
           SkipUnchangedFiles="true" />
 
-    <Message Text="[VizorGH] Deployment complete." Importance="High" />
+    <Message Text="[VizorGH] Deployed to: $(GHLibrariesPath)" Importance="High" />
+    <Message Text="[VizorGH] Note: unchanged .gha/.dll are skipped (SkipUnchangedFiles=true) — this is normal on incremental builds." Importance="High" />
 
   </Target>
 

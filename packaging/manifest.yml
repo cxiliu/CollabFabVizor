@@ -1,0 +1,14 @@
+---
+# yak package manifest.
+#
+# DO NOT EDIT THE VERSION HERE. It is a placeholder.
+# The real version comes from <VizorVersion> in Directory.Build.props and is
+# stamped into a copy of this file by packaging/build-yak.ps1.
+name: Vizor
+version: 0.0.0
+authors:
+- Xiliu Yang
+description: >
+  Design and prototype AR-enabled multi-actor fabrication processes in Grasshopper. This plugin is part of the VIZOR framework, which aims to support human-centred robotic fabrication using AR/VR technologies.
+url: xiliu.yang@icd.uni-stuttgart.de
+icon: Logo_64x64.png

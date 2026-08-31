@@ -313,38 +313,44 @@ namespace VizorLibs
 
         public RobotTrajectoryMsg GetTrajectoryMessages()
         {
-            try
-            {
-                // TODO: this could be caught nicer that with a try catch exception
-                RobotObject robot = (RobotObject)this.gTarget;
-
-                //Curve path = new PolylineCurve(this.gTrajectoryFrames.Select(f => f.Origin).ToArray());
-                //Mesh mesh = Mesh.CreateFromCurvePipe(path, 10.0, 6, 1, MeshPipeCapStyle.Dome, true);
-                if (gTrajectoryObject == null)
-                {
-                    return new MessageTypes.RobotTrajectoryMsg("", new BuiltInMsg.JointTrajectoryMsg(), new BuiltInMsg.MeshMsg());
-                }
-                
-                BuiltInMsg.MeshMsg meshMsg = MessageTypes.MsgDataConverter.ghMeshToMsg(gTrajectoryObject.gMesh);
-
-                //if (robot.name == "RP4_Platform" || robot.name == "RP14_Platform")
-                //jointTrajectoryMsg = ROSMessageTypes.MsgDataConverter.ghFramesToTrajMsgSevenDoF(this.gTrajectoryFrames, robot, 5.41f);
-
-                BuiltInMsg.JointTrajectoryMsg jointTrajectoryMsg;
-                //if (robot.name == "KR420")
-                //{
-                //    jointTrajectoryMsg = gTrajectoryObject.GetRobotTrajectoryMsg("KR420");
-                //}
-                //else
-                //{
-                jointTrajectoryMsg = gTrajectoryObject.GetRobotTrajectoryMsg();
-                //}
-                return new MessageTypes.RobotTrajectoryMsg(robot.name, jointTrajectoryMsg, meshMsg);
-            }
-            catch
+            if (!(this.gTarget is RobotObject robot))
             {
                 return new MessageTypes.RobotTrajectoryMsg("", new BuiltInMsg.JointTrajectoryMsg(), new BuiltInMsg.MeshMsg());
             }
+
+            // a robotic task is allowed to carry no motion at all (e.g. "Gripper Open", where the
+            // backend dispatches on the task name). the platform name is still reported so the
+            // receiver can tell "robot task without motion" from "not a robot task"
+            if (gTrajectoryObject == null)
+            {
+                return new MessageTypes.RobotTrajectoryMsg(robot.name, new BuiltInMsg.JointTrajectoryMsg(), new BuiltInMsg.MeshMsg());
+            }
+
+            // joint trajectory and mesh trajectory are converted independently, so a failure
+            // converting one (e.g. a null trajectory mesh) can't wipe out the other's valid data
+            BuiltInMsg.JointTrajectoryMsg jointTrajectoryMsg;
+            try
+            {
+                jointTrajectoryMsg = gTrajectoryObject.GetRobotTrajectoryMsg();
+            }
+            catch
+            {
+                jointTrajectoryMsg = new BuiltInMsg.JointTrajectoryMsg();
+            }
+
+            BuiltInMsg.MeshMsg meshMsg;
+            try
+            {
+                meshMsg = gTrajectoryObject.gMesh != null
+                    ? MessageTypes.MsgDataConverter.ghMeshToMsg(gTrajectoryObject.gMesh)
+                    : new BuiltInMsg.MeshMsg();
+            }
+            catch
+            {
+                meshMsg = new BuiltInMsg.MeshMsg();
+            }
+
+            return new MessageTypes.RobotTrajectoryMsg(robot.name, jointTrajectoryMsg, meshMsg);
         }
 
         public SafetyZoneMsg GetSafetyZoneMessage()

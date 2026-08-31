@@ -8,6 +8,19 @@
 -->
 <Project>
 
+  <!--
+    THE VERSION NUMBER FOR THE WHOLE PLUGIN. Edit it here and nowhere else.
+    It feeds the assembly version, the yak manifest, and the git tag check in CI.
+    Release CI refuses to build if the git tag does not match this number.
+  -->
+  <PropertyGroup>
+    <VizorVersion>2.1.0</VizorVersion>
+    <Version>$(VizorVersion)</Version>
+    <AssemblyVersion>$(VizorVersion).0</AssemblyVersion>
+    <FileVersion>$(VizorVersion).0</FileVersion>
+  </PropertyGroup>
+
+
   <!-- Platform detection: $(OS) == "Windows_NT" on Windows, else Mac/Linux -->
   <PropertyGroup>
     <IsWindowsBuild Condition="'$(OS)' == 'Windows_NT'">true</IsWindowsBuild>
