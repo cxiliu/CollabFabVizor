@@ -3,7 +3,6 @@ using Grasshopper;
 using Grasshopper.Kernel;
 using VizorLibs;
 using VizorLibs.MessageTypes;
-using System.Threading.Tasks;
 
 namespace Vizor._1_System
 {
@@ -29,10 +28,9 @@ namespace Vizor._1_System
 		}
 
 		private WsObject wscObj;
-		private bool prevReset = false;
 		private bool isSubscribedToEvents;
 		private GH_Document ghDocument;
-		private string Info = "Connecting to server";
+		private string Info = "Disconnected";
 
 		~WsConnection()
 		{
@@ -43,7 +41,7 @@ namespace Vizor._1_System
 		{
 			pManager.AddTextParameter("address", "URL", "Websocket server address. Scheme (ws://) should be included. For example ws://echo.websocket.org", 
 				GH_ParamAccess.item, "ws://localhost:9090");
-			pManager.AddBooleanParameter("reset", "Reset", "Restart the connection.", 
+			pManager.AddBooleanParameter("connectToggle", "connectToggle", "Connect when true; disconnect when false.",
 				GH_ParamAccess.item, false);
 		}
 
@@ -51,24 +49,6 @@ namespace Vizor._1_System
 		{
 			pManager.AddGenericParameter("Websocket Object", "WSC", "This object provides access to the connection. Connect this output to device web socket inputs.", GH_ParamAccess.item);
 			pManager.AddTextParameter("Connection Info", "Info", "This output puts the current status of the connection", GH_ParamAccess.item);
-		}
-
-		/// <summary>
-		/// Disconnect from websocket server.
-		/// This function needs to be run on events such as delete the component.
-		/// </summary>
-		private async Task Disconnect()
-		{
-			if (this.wscObj != null)
-			{
-				try {
-					await this.wscObj.disconnect();
-				}
-				catch { }
-				this.wscObj.changed -= this.WsObjectOnChange;
-				this.wscObj.statusChanged -= this.WsStatusOnChange;
-				this.wscObj = null;
-			}
 		}
 
 		/// <summary>
@@ -116,39 +96,43 @@ namespace Vizor._1_System
 			}
 		}
 
-		protected override async void SolveInstance(IGH_DataAccess DA)
+		protected override void SolveInstance(IGH_DataAccess DA)
 		{
 			this.SubscribeToEvents();
 
 			string address = null;
-			string initMsg = "Hello Vizor";
-			bool reset = false;
+			bool connect = false;
 
-			DA.GetData(0, ref address);
-			if (!DA.GetData(1, ref reset)) return;
+			if (!DA.GetData(0, ref address) || !DA.GetData(1, ref connect)) return;
 
-
-			if ( WsObject.isAdressValid(address))
+			if (!connect)
 			{
-				bool doReset = reset && !this.prevReset;
-				this.prevReset = reset;
-				if (this.wscObj == null || doReset || !this.wscObj.isSameAdress(address))
-				{
-					if (this.wscObj != null)
-					{
-						await this.Disconnect();
-					}
-					this.wscObj = new WsObject().init(address, initMsg);
-					this.Message = "Connecting";
-					this.wscObj.changed += this.WsObjectOnChange;
-					this.wscObj.statusChanged += this.WsStatusOnChange;
-				}
-			} else {
-				this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid websocket address");
+				this.Disconnect();
+				DA.SetData(0, null);
+				DA.SetData(1, this.Info);
+				return;
 			}
 
-			// change display of the component when not connected
-			if(this.wscObj.status != WsObject.ConnectionStatus.OPEN && this.wscObj.status != WsObject.ConnectionStatus.MESSAGE)
+			if (!WsObject.isAdressValid(address))
+			{
+				this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Invalid websocket address");
+				return;
+			}
+
+			if (this.wscObj == null || !this.wscObj.isSameAdress(address))
+			{
+				this.Disconnect();
+				this.wscObj = new WsObject().init(address, null);
+				this.Message = "Connecting";
+				this.Info = "Connecting";
+				this.wscObj.changed += this.WsObjectOnChange;
+				this.wscObj.statusChanged += this.WsStatusOnChange;
+				this.wscObj.Start();
+			} else {
+				this.Message = this.wscObj.status.ToString().ToLower();
+			}
+
+			if (this.wscObj.status != WsObject.ConnectionStatus.OPEN && this.wscObj.status != WsObject.ConnectionStatus.MESSAGE)
 			{
 				this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Could not connect to websocket server");
 			}
@@ -161,13 +145,17 @@ namespace Vizor._1_System
 		// Update the Message of the component to the last changed status
 		private void WsObjectOnChange(object sender, EventArgs e)
 		{
-			this.Message = this.wscObj.status.ToString().ToLower();
+			WsObject socket = sender as WsObject;
+			if (socket == null) return;
+			this.Message = socket.status.ToString().ToLower();
 		}
 
 		// Whenever the status of the websocket changes, expire the solution
 		private void WsStatusOnChange(object sender, EventArgs e)
 		{
-			this.Info = this.wscObj.status.ToString().ToLower();
+			WsObject socket = sender as WsObject;
+			if (socket == null) return;
+			this.Info = socket.status.ToString().ToLower() + ": " + socket.diagnostic;
 
 			// expire solution
             Grasshopper.Instances.DocumentEditor.BeginInvoke((Action)delegate ()
@@ -177,6 +165,18 @@ namespace Vizor._1_System
                     this.ExpireSolution(true);
                 }
             });
+		}
+
+		private void Disconnect()
+		{
+			if (this.wscObj == null) return;
+
+			_ = this.wscObj.disconnect();
+			this.wscObj.changed -= this.WsObjectOnChange;
+			this.wscObj.statusChanged -= this.WsStatusOnChange;
+			this.wscObj = null;
+			this.Info = "Disconnected";
+			this.Message = "disconnected";
 		}
 
 		/// <summary>

@@ -22,6 +22,7 @@ namespace VizorLibs
 		private Uri uri;
 		public ConnectionStatus status;
 		public string message;
+		public string diagnostic;
 		private string initMessage;
 		public event EventHandler changed;
 		public event EventHandler statusChanged;
@@ -58,7 +59,8 @@ namespace VizorLibs
 			});
 			this.webSocket.DisconnectionHappened.Subscribe(info =>
 			{
-				Console.WriteLine("Disconnect happened");
+				this.diagnostic = "Disconnected: " + info;
+				Console.WriteLine(this.diagnostic);
 				this.onClose();
 			});
 
@@ -69,8 +71,12 @@ namespace VizorLibs
 				this.onMessage(msg);
 			});
 			
-			this.connect();
 			return this;
+		}
+
+		public void Start()
+		{
+			_ = this.connect();
 		}
 
 		public bool isConnected()
@@ -100,8 +106,10 @@ namespace VizorLibs
 				await connectTask;
 				this.onOpen();
 			}
-			catch
+			catch (Exception ex)
 			{
+				this.diagnostic = ex.ToString();
+				Console.WriteLine("WebSocket connection failed: " + this.diagnostic);
 				this.onError();
 			}
 		}
@@ -121,7 +129,8 @@ namespace VizorLibs
 		// private void onOpen(object sender, EventArgs e)
 		private void onOpen()
 		{
-			send(initMessage);
+			this.diagnostic = "Connected to " + this.uri;
+			if (!String.IsNullOrWhiteSpace(initMessage)) send(initMessage);
 			status = ConnectionStatus.OPEN;
 			onChanged();
 			onStatusChanged();
