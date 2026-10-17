@@ -60,14 +60,6 @@
     <PackageReference Include="RhinoCommon" Version="8.0.23304.9001" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.Resources.Extensions" Version="8.0.0" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
     <!-- need to use version 4.7.0 because consecutive  versions do not support net48 -->
     <!-- docs for v4.7: https://github.com/Marfusios/websocket-client/tree/573521c49e1bddba63e823bf907fe9c70c21f734 -->
     <PackageReference Include="Websocket.Client" Version="4.7.0" /> 
